@@ -45,6 +45,18 @@ apt-get install -y \
 echo "==> Installing Node.js 20 LTS…"
 NODE_MAJOR=20
 if ! node --version 2>/dev/null | grep -q "^v${NODE_MAJOR}"; then
+  # Purge ALL Ubuntu-packaged Node artifacts that conflict with NodeSource.
+  # libnode-dev and libnode72 own files that nodejs_20 also wants to install,
+  # causing a dpkg "trying to overwrite" error if left in place.
+  apt-get purge -y \
+    nodejs nodejs-doc npm \
+    libnode-dev libnode72 \
+    node-gyp node-tap node-tap-mocha-reporter node-tap-parser \
+    node-coveralls node-cacache node-copy-concurrently \
+    node-move-concurrently 2>/dev/null || true
+  apt-get autoremove -y 2>/dev/null || true
+
+  mkdir -p /etc/apt/keyrings
   curl -fsSL "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" \
     | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
   echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
