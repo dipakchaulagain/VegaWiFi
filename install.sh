@@ -38,9 +38,21 @@ apt-get install -y \
   freeradius freeradius-mysql freeradius-ldap freeradius-utils \
   mariadb-server nginx \
   python3 python3-pip python3-venv \
-  nodejs npm \
   ufw easy-rsa \
-  openssl curl
+  openssl curl ca-certificates gnupg
+
+# ── Node.js 20 LTS via NodeSource (Ubuntu ships Node 12 which is too old) ────
+echo "==> Installing Node.js 20 LTS…"
+NODE_MAJOR=20
+if ! node --version 2>/dev/null | grep -q "^v${NODE_MAJOR}"; then
+  curl -fsSL "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key" \
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+    > /etc/apt/sources.list.d/nodesource.list
+  apt-get update -qq
+  apt-get install -y nodejs
+fi
+echo "  Node $(node --version)  npm $(npm --version)"
 
 # ── Copy project files to /opt/portal ────────────────────────────────────────
 echo "==> Copying project files to ${PORTAL_DIR}…"
@@ -162,7 +174,7 @@ ln -sf /etc/freeradius/3.0/mods-available/ldap /etc/freeradius/3.0/mods-enabled/
 # ── Build frontend ────────────────────────────────────────────────────────────
 echo "==> Building React frontend…"
 cd "$PORTAL_DIR/frontend"
-npm ci --silent
+npm ci
 npm run build
 cd "$PORTAL_DIR"
 
