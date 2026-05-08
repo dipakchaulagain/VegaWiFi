@@ -178,6 +178,9 @@ python3 -m venv "$PORTAL_DIR/venv"
 # ── File ownership ────────────────────────────────────────────────────────────
 echo "==> Setting file ownership…"
 chown -R portaluser:freerad "$PORTAL_DIR/backend"
+mkdir -p "$PORTAL_DIR/fr_backups"
+chown portaluser:freerad "$PORTAL_DIR/fr_backups"
+chmod 750 "$PORTAL_DIR/fr_backups"
 # portaluser must be the *owner* (not just group member) of these dirs so it
 # can create/modify files inside them.  chmod 750 keeps freerad group readable.
 chown portaluser:freerad /etc/freeradius/3.0/mods-enabled
