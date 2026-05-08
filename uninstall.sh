@@ -95,13 +95,13 @@ fi
 
 # ── FreeRADIUS configs written by the portal ─────────────────────────────────
 echo "==> Reverting FreeRADIUS configs…"
+
+# Module symlinks — simply remove; FreeRADIUS works without them.
 for f in \
   /etc/freeradius/3.0/mods-enabled/ldap \
   /etc/freeradius/3.0/mods-enabled/sql \
-  /etc/freeradius/3.0/clients.conf \
   /etc/freeradius/3.0/policy.d/concurrent_limit
 do
-  # Restore .bak if it exists, otherwise just remove
   if [[ -f "${f}.bak" ]]; then
     mv "${f}.bak" "$f"
     echo "    Restored ${f}.bak → $f"
@@ -110,6 +110,27 @@ do
     echo "    Removed $f"
   fi
 done
+
+# clients.conf is required for FreeRADIUS to start — never leave it absent.
+FR_CLIENTS="/etc/freeradius/3.0/clients.conf"
+if [[ -f "${FR_CLIENTS}.bak" ]]; then
+  mv "${FR_CLIENTS}.bak" "$FR_CLIENTS"
+  echo "    Restored ${FR_CLIENTS}.bak → $FR_CLIENTS"
+else
+  # No backup means this was the first install; write a safe minimal default
+  # so FreeRADIUS can start after a reinstall.
+  cat > "$FR_CLIENTS" <<'CLIENTS'
+# Restored by uninstall.sh — overwritten by the Wi-Fi AAA Portal setup wizard.
+client localhost {
+    ipaddr    = 127.0.0.1
+    secret    = changeme_via_portal
+    shortname = localhost
+}
+CLIENTS
+  chown freerad:freerad "$FR_CLIENTS"
+  chmod 640 "$FR_CLIENTS"
+  echo "    Wrote minimal placeholder $FR_CLIENTS (no backup existed)"
+fi
 
 # ── Sudoers rule ──────────────────────────────────────────────────────────────
 echo "==> Removing sudoers rule…"

@@ -183,6 +183,24 @@ echo "==> Enabling FreeRADIUS modules…"
 ln -sf /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/sql 2>/dev/null || true
 ln -sf /etc/freeradius/3.0/mods-available/ldap /etc/freeradius/3.0/mods-enabled/ldap 2>/dev/null || true
 
+# ── Ensure clients.conf exists so FreeRADIUS can start ───────────────────────
+# The portal setup wizard will overwrite this with real NAS entries.
+# Without this file FreeRADIUS refuses to start entirely.
+FR_CLIENTS="/etc/freeradius/3.0/clients.conf"
+if [[ ! -f "$FR_CLIENTS" ]]; then
+  echo "==> Writing placeholder clients.conf (wizard will replace this)…"
+  cat > "$FR_CLIENTS" <<'CLIENTS'
+# Placeholder — overwritten by the Wi-Fi AAA Portal setup wizard.
+client localhost {
+    ipaddr    = 127.0.0.1
+    secret    = changeme_via_portal
+    shortname = localhost
+}
+CLIENTS
+  chown freerad:freerad "$FR_CLIENTS"
+  chmod 640 "$FR_CLIENTS"
+fi
+
 # ── Build frontend ────────────────────────────────────────────────────────────
 echo "==> Building React frontend…"
 cd "$PORTAL_DIR/frontend"
