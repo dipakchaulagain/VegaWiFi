@@ -96,8 +96,9 @@ fi
 # ── FreeRADIUS configs written by the portal ─────────────────────────────────
 echo "==> Reverting FreeRADIUS configs…"
 
-# Module configs written by the portal wizard — remove real files only.
-# These may not exist if the setup wizard was never completed; that is fine.
+# Module configs written by the portal — always remove (file or symlink).
+# The portal owns these paths entirely; FreeRADIUS starts without them.
+# policy.d/concurrent_limit only exists after the wizard runs; that is fine.
 for f in \
   /etc/freeradius/3.0/mods-enabled/ldap \
   /etc/freeradius/3.0/mods-enabled/sql \
@@ -106,12 +107,9 @@ do
   if [[ -f "${f}.bak" ]]; then
     mv "${f}.bak" "$f"
     echo "    Restored ${f}.bak → $f"
-  elif [[ -e "$f" && ! -L "$f" ]]; then
-    # Only remove if it is a real file (not a symlink left from manual setup)
-    rm -f "$f"
-    echo "    Removed $f"
   else
-    echo "    Skipped $f (not present or is a symlink)"
+    rm -f "$f"   # rm -f handles files, symlinks, and absent paths safely
+    echo "    Removed $f"
   fi
 done
 
