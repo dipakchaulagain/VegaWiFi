@@ -78,14 +78,20 @@ for d in backend frontend nginx; do
 done
 cp -a "${SCRIPT_DIR}/install.sh" "${PORTAL_DIR}/install.sh"
 
-# ── Generate secrets ──────────────────────────────────────────────────────────
-echo "==> Generating secrets…"
-DB_PASS=$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 32)
-JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
-AES_KEY=$(openssl rand -hex 32)
+# ── Generate secrets (reuse if .env already exists) ───────────────────────────
+mkdir -p "$PORTAL_DIR"
+if [[ -f "$PORTAL_DIR/.env" ]]; then
+  echo "==> Existing .env found — preserving secrets…"
+  DB_PASS=$(grep '^DB_PASS=' "$PORTAL_DIR/.env" | cut -d= -f2-)
+  JWT_SECRET=$(grep '^JWT_SECRET=' "$PORTAL_DIR/.env" | cut -d= -f2-)
+  AES_KEY=$(grep '^AES_KEY=' "$PORTAL_DIR/.env" | cut -d= -f2-)
+fi
+# Generate only what is missing (first install or if a variable was absent)
+[[ -z "${DB_PASS:-}" ]]     && DB_PASS=$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 32)
+[[ -z "${JWT_SECRET:-}" ]]  && JWT_SECRET=$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48)
+[[ -z "${AES_KEY:-}" ]]     && AES_KEY=$(openssl rand -hex 32)
 
 # ── Write .env ────────────────────────────────────────────────────────────────
-mkdir -p "$PORTAL_DIR"
 cat > "$PORTAL_DIR/.env" <<EOF
 DB_HOST=127.0.0.1
 DB_PORT=3306
@@ -104,9 +110,12 @@ chmod 600 "$PORTAL_DIR/.env"
 echo "==> Configuring MariaDB…"
 systemctl enable --now mariadb
 
+# ALTER USER ensures the password stays in sync with .env even when the
+# user already exists (e.g. after a --keep-data reinstall).
 mariadb <<SQL
 CREATE DATABASE IF NOT EXISTS radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS 'portaluser'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
+ALTER USER 'portaluser'@'127.0.0.1' IDENTIFIED BY '${DB_PASS}';
 GRANT ALL PRIVILEGES ON radius.* TO 'portaluser'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
