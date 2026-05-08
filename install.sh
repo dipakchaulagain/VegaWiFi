@@ -164,6 +164,10 @@ SQL
 # ── System user ───────────────────────────────────────────────────────────────
 echo "==> Creating system user portaluser…"
 id -u portaluser &>/dev/null || useradd --system --no-create-home --shell /usr/sbin/nologin portaluser
+# Add portaluser to the freerad group so it can read FreeRADIUS-owned files.
+# Also make portaluser the owner of the dirs it must write to (mods-enabled,
+# policy.d, clients.conf) — group r-x alone is not enough for writes.
+usermod -aG freerad portaluser
 
 # ── Python virtual environment ────────────────────────────────────────────────
 echo "==> Setting up Python venv…"
@@ -173,10 +177,15 @@ python3 -m venv "$PORTAL_DIR/venv"
 
 # ── File ownership ────────────────────────────────────────────────────────────
 echo "==> Setting file ownership…"
-chown -R portaluser:freerad "$PORTAL_DIR/backend" 2>/dev/null || true
-chown -R portaluser:freerad /etc/freeradius/3.0/mods-enabled 2>/dev/null || true
-chown -R portaluser:freerad /etc/freeradius/3.0/policy.d 2>/dev/null || true
-chown portaluser:freerad /etc/freeradius/3.0/clients.conf 2>/dev/null || true
+chown -R portaluser:freerad "$PORTAL_DIR/backend"
+# portaluser must be the *owner* (not just group member) of these dirs so it
+# can create/modify files inside them.  chmod 750 keeps freerad group readable.
+chown portaluser:freerad /etc/freeradius/3.0/mods-enabled
+chmod 750 /etc/freeradius/3.0/mods-enabled
+chown portaluser:freerad /etc/freeradius/3.0/policy.d
+chmod 750 /etc/freeradius/3.0/policy.d
+chown portaluser:freerad /etc/freeradius/3.0/clients.conf
+chmod 640 /etc/freeradius/3.0/clients.conf
 chmod 640 "$PORTAL_DIR/.env"
 chown portaluser:portaluser "$PORTAL_DIR/.env"
 
