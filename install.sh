@@ -11,6 +11,10 @@ PORTAL_VLAN_IP="${1:-$(hostname -I | awk '{print $1}')}"
 AC_IP="${2:-}"  # optional: lock RADIUS ports to this IP only
 PORTAL_DIR="/opt/portal"
 
+# Resolve the directory that contains this script (works whether the script
+# is run as "sudo bash install.sh" or "sudo ./install.sh" from any CWD).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # ── Preflight checks ─────────────────────────────────────────────────────────
 if [[ $EUID -ne 0 ]]; then
   echo "ERROR: Must be run as root." >&2
@@ -37,6 +41,18 @@ apt-get install -y \
   nodejs npm \
   ufw easy-rsa \
   openssl curl
+
+# ── Copy project files to /opt/portal ────────────────────────────────────────
+echo "==> Copying project files to ${PORTAL_DIR}…"
+mkdir -p "$PORTAL_DIR"
+
+# rsync is not always present on minimal Ubuntu; use cp -a with explicit dirs.
+# Preserve existing .env if the installer is being re-run.
+for d in backend frontend nginx; do
+  rm -rf "${PORTAL_DIR:?}/${d}"
+  cp -a "${SCRIPT_DIR}/${d}" "${PORTAL_DIR}/${d}"
+done
+cp -a "${SCRIPT_DIR}/install.sh" "${PORTAL_DIR}/install.sh"
 
 # ── Generate secrets ──────────────────────────────────────────────────────────
 echo "==> Generating secrets…"
@@ -120,16 +136,7 @@ id -u portaluser &>/dev/null || useradd --system --no-create-home --shell /usr/s
 echo "==> Setting up Python venv…"
 python3 -m venv "$PORTAL_DIR/venv"
 "$PORTAL_DIR/venv/bin/pip" install --quiet --upgrade pip
-"$PORTAL_DIR/venv/bin/pip" install --quiet \
-  fastapi uvicorn[standard] \
-  aiomysql \
-  python-jose[cryptography] \
-  passlib bcrypt \
-  ldap3 \
-  jinja2 \
-  cryptography \
-  pydantic-settings \
-  slowapi
+"$PORTAL_DIR/venv/bin/pip" install --quiet -r "$PORTAL_DIR/backend/requirements.txt"
 
 # ── File ownership ────────────────────────────────────────────────────────────
 echo "==> Setting file ownership…"
