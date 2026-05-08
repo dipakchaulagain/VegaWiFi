@@ -1,0 +1,33 @@
+sql {
+  driver        = "rlm_sql_mysql"
+  dialect       = "mysql"
+  server        = "{{ db_host }}"
+  port          = {{ db_port }}
+  login         = "{{ db_user }}"
+  password      = "{{ db_pass }}"
+  radius_db     = "{{ db_name }}"
+
+  acct_table1   = "radacct"
+  acct_table2   = "radacct"
+  postauth_table = "radpostauth"
+  authcheck_table = "radcheck"
+  groupcheck_table = "radgroupcheck"
+  authreply_table = "radreply"
+  groupreply_table = "radgroupreply"
+  usergroup_table = "radusergroup"
+  deletestalesessions = yes
+  sqltrace      = no
+  sqltracefile  = ${logdir}/sqltrace.sql
+  num_sql_socks = 5
+  connect_failure_retry_delay = 60
+  lifetime      = 0
+  max_queries   = 0
+
+  # Read clients from the NAS table
+  read_clients  = yes
+  client_table  = "nas"
+
+  group_attribute = "SQL-Group"
+
+  $INCLUDE ${modconfdir}/${.:name}/main/${dialect}/queries.conf
+}

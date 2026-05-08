@@ -1,0 +1,15 @@
+client localhost {
+  ipaddr    = 127.0.0.1
+  secret    = {{ radius_shared_secret }}
+  shortname = localhost
+}
+{% for nas in nas_list %}
+client {{ nas.shortname }} {
+  ipaddr    = {{ nas.nasname }}
+  secret    = {{ nas.secret }}
+  shortname = {{ nas.shortname }}
+  {% if nas.description %}
+  # {{ nas.description }}
+  {% endif %}
+}
+{% endfor %}

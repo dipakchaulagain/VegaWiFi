@@ -1,0 +1,42 @@
+ldap {
+  server     = "{{ ldap_server }}"
+  identity   = "{{ ldap_bind_dn }}"
+  password   = "{{ ldap_bind_pw }}"
+  base_dn    = "{{ ldap_base_dn }}"
+  sasl { }
+  update {
+    control:Password-With-Header += 'userPassword'
+    control:NT-Password           := 'ntPassword'
+    reply:Reply-Message           := 'radiusReplyMessage'
+  }
+  user {
+    base_dn  = "{{ ldap_base_dn }}"
+    filter   = "{{ ldap_user_filter }}"
+  }
+  group {
+    base_dn              = "{{ ldap_group_dn }}"
+    filter               = "(member=%{control:Ldap-UserDn})"
+    name_attribute       = cn
+    membership_filter    = "(member=%{control:Ldap-UserDn})"
+    membership_attribute = 'memberOf'
+  }
+  options {
+    chase_referrals = yes
+    rebind          = yes
+    res_timeout     = 10
+    srv_timelimit   = 3
+    net_timeout     = 1
+  }
+  tls {
+    start_tls    = no
+    require_cert = 'demand'
+  }
+  pool {
+    start        = 5
+    min          = 3
+    max          = 10
+    spare        = 5
+    lifetime     = 0
+    idle_timeout = 60
+  }
+}
