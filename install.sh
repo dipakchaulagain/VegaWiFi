@@ -186,7 +186,12 @@ ln -sf /etc/freeradius/3.0/mods-available/ldap /etc/freeradius/3.0/mods-enabled/
 # ── Build frontend ────────────────────────────────────────────────────────────
 echo "==> Building React frontend…"
 cd "$PORTAL_DIR/frontend"
-npm ci
+if [[ -f package-lock.json ]]; then
+  npm ci
+else
+  echo "  WARNING: no package-lock.json found, running npm install instead" >&2
+  npm install
+fi
 npm run build
 cd "$PORTAL_DIR"
 
