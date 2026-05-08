@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAccounting, getExportUrl, AccountingRecord, AccountingFilters } from '../api/accounting'
-import { getNasList } from '../api/policy'
+import { getNasList, NasEntry } from '../api/policy'
 
 function formatBytes(bytes: number | null): string {
   if (bytes == null) return '—'
@@ -15,7 +15,7 @@ export default function Accounting() {
   const [page, setPage] = useState(1)
   const perPage = 50
   const [loading, setLoading] = useState(false)
-  const [nasList, setNasList] = useState<{ id: number; nasname: string; shortname: string }[]>([])
+  const [nasList, setNasList] = useState<Omit<NasEntry, 'secret'>[]>([])
 
   const [filters, setFilters] = useState<AccountingFilters>({})
   const [draft, setDraft] = useState<AccountingFilters>({})
