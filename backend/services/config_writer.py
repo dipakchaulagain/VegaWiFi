@@ -18,6 +18,9 @@ from backend.services.radius_db import get_all_config, get_nas_list
 logger = logging.getLogger(__name__)
 
 TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
+# Backups go here — portaluser owns /opt/portal so writes always succeed,
+# avoiding permission errors when backing up files in /etc/freeradius/3.0/.
+BACKUP_DIR = Path("/opt/portal/fr_backups")
 
 
 def _get_jinja_env() -> Environment:
@@ -44,11 +47,14 @@ def encrypt_value(plaintext: str, aes_key_hex: str) -> str:
 
 
 def _backup_file(path: Path) -> Optional[Path]:
-    if path.exists():
-        bak = path.with_suffix(path.suffix + ".bak")
-        shutil.copy2(path, bak)
-        return bak
-    return None
+    """Copy *path* into BACKUP_DIR and return the backup path, or None."""
+    if not path.exists():
+        return None
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    # Flatten the source path into a single filename to avoid collisions.
+    bak = BACKUP_DIR / (path.name + ".bak")
+    shutil.copy2(path, bak)
+    return bak
 
 
 def _restore_backups(paths: list[tuple[Path, Optional[Path]]]) -> None:
