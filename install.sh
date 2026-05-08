@@ -178,10 +178,14 @@ portaluser ALL=(ALL) NOPASSWD: /bin/systemctl reload freeradius
 EOF
 chmod 440 /etc/sudoers.d/portal-freeradius
 
-# ── Enable FreeRADIUS SQL module ──────────────────────────────────────────────
-echo "==> Enabling FreeRADIUS modules…"
-ln -sf /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/sql 2>/dev/null || true
-ln -sf /etc/freeradius/3.0/mods-available/ldap /etc/freeradius/3.0/mods-enabled/ldap 2>/dev/null || true
+# ── FreeRADIUS modules ────────────────────────────────────────────────────────
+# Do NOT pre-enable sql or ldap here.
+# - ldap pool tries to open 5 connections at startup (start=5 in the default
+#   config); with no LDAP server configured yet this kills FreeRADIUS.
+# - sql similarly tries to connect; the real credentials aren't in place yet.
+# The setup wizard calls config_writer.write_all() which writes the rendered
+# module configs directly into mods-enabled/ and then reloads FreeRADIUS.
+echo "==> Skipping sql/ldap module activation (wizard will enable them)…"
 
 # ── Ensure clients.conf exists so FreeRADIUS can start ───────────────────────
 # The portal setup wizard will overwrite this with real NAS entries.

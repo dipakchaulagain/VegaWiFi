@@ -121,6 +121,14 @@ async def write_all() -> dict:
             template = env.get_template(template_name)
             rendered = template.render(**ctx)
             target_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # If the path is a symlink (e.g. mods-enabled/ldap -> mods-available/ldap
+            # left over from a manual setup), remove it before writing so we create a
+            # real file rather than following the symlink into mods-available/.
+            if target_path.is_symlink():
+                target_path.unlink()
+                logger.info("Removed symlink %s before writing", target_path)
+
             target_path.write_text(rendered)
             logger.info("Wrote %s", target_path)
 
